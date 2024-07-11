@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<!-- Page-Specific Title -->
+<head>
+    <title>Barcode Generator</title>
+</head>
+
+<!-- CSS -->
+<th:block layout:fragment="css">
+    <style>
+        .modal-dialog {
+            max-width: 80%;
+        }
+    </style>
+</th:block>
+
+<!-- Script -->
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+        $(document).ready(function () {
+            $('#barcodeForm').submit(function (event) {
+                event.preventDefault();
+                const text = $('#text').val();
+
+                $.ajax({
+                    url: '/generateBarcode',
+                    type: 'GET',
+                    data: { text: text },
+                    xhrFields: {
+                        responseType: 'blob'
+                    },
+                    success: function (data) {
+                        const url = URL.createObjectURL(data);
+                        $('#barcodeImage').attr('src', url);
+                        $('#barcodeModal').modal('show');
+                    },
+                    error: function () {
+                        alert('Failed to generate barcode. Please try again.');
+                    }
+                });
+            });
+
+            // Print barcode function
+            $('#printBarcodeBtn').click(function () {
+                const barcodeImage = document.getElementById('barcodeImage').src;
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Print Barcode</title>
+                        <style>
+                            @media print {
+                                body, html {
+                                    margin: 0;
+                                    padding: 0;
+                                }
+                                img {
+                                    margin-top: 50px;
+                                }
+                                @page {
+                                    size: auto;
+                                    margin: 0;
+                                }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${barcodeImage}" alt="Barcode">
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+                printWindow.focus();
+                printWindow.print();
+                printWindow.close();
+            });
+        });
+    </script>
+</th:block>
+
+<div layout:fragment="content">
+    <div class="container mt-5">
+        <h1>Barcode Generator</h1>
+        <form id="barcodeForm">
+            <div class="form-group">
+                <label for="text">Enter Text:</label>
+                <input type="text" class="form-control" id="text" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Generate Barcode</button>
+        </form>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="barcodeModal" tabindex="-1" aria-labelledby="barcodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="barcodeModalLabel">Generated Barcode</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="barcodeImage" src="" alt="Barcode" class="img-fluid">
+                    <button id="printBarcodeBtn" class="btn btn-secondary mt-3">Print Barcode</button>
+                </div>
+                <div class="modal-footer">
+                    <!-- Additional footer content -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</html>

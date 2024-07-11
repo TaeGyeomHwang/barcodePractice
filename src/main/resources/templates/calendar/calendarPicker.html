@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<head>
+    <title>Calendar Picker</title>
+    <!-- CSS -->
+    <th:block layout:fragment="css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    </th:block>
+</head>
+
+<!-- Script -->
+<th:block layout:fragment="script">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            var calendarEl = document.getElementById('calendar');
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                dateClick: function(info) {
+                    // Reset the form when the modal is shown
+                    $('#eventForm')[0].reset();
+
+                    // Get the selected date
+                    const selectedDate = new Date(info.dateStr);
+
+                    // Get the current time
+                    const now = new Date();
+                    const currentHours = now.getHours();
+                    const currentMinutes = now.getMinutes();
+
+                    // Set the start time to the selected date with current time
+                    selectedDate.setHours(currentHours);
+                    selectedDate.setMinutes(currentMinutes);
+                    const startTime = formatDateTimeLocal(selectedDate);
+
+                    // Set the end time to one hour after the start time
+                    selectedDate.setHours(currentHours + 1);
+                    const endTime = formatDateTimeLocal(selectedDate);
+
+                    $('#eventDate').val(info.dateStr);
+                    $('#eventStartTime').val(startTime);
+                    $('#eventEndTime').val(endTime);
+                    $('#eventModal').modal('show');
+                }
+            });
+
+            // Fetch events from the backend
+            $.ajax({
+                url: '/api/events',
+                type: 'GET',
+                success: function(events) {
+                    events.forEach(function(event) {
+                        calendar.addEvent({
+                            title: event.title,
+                            start: event.startTime,
+                            end: event.endTime,
+                            description: event.createdBy
+                        });
+                    });
+                },
+                error: function() {
+                    alert('Failed to fetch events. Please try again.');
+                }
+            });
+
+            calendar.render();
+        });
+
+        function formatDateTimeLocal(date) {
+            const pad = (num) => num.toString().padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function saveEvent() {
+            var event = {
+                title: $('#eventTitle').val(),
+                startTime: $('#eventStartTime').val(),
+                endTime: $('#eventEndTime').val(),
+                createdBy: $('#eventCreatedBy').val()
+            };
+
+            $.ajax({
+                url: '/api/events',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(event),
+                success: function() {
+                    $('#eventModal').modal('hide');
+                    alert('Event saved successfully!');
+                    // Optionally, you can reload the calendar events here.
+                    location.reload();
+                },
+                error: function() {
+                    alert('Failed to save event. Please try again.');
+                }
+            });
+        }
+    </script>
+</th:block>
+
+<div layout:fragment="content">
+    <div class="container mt-5">
+        <h1>Calendar</h1>
+        <div id="calendar"></div>
+    </div>
+
+    <!-- Event Modal -->
+    <div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventModalLabel">Add Event</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="eventForm">
+                        <div class="form-group">
+                            <label for="eventTitle">Title</label>
+                            <input type="text" class="form-control" id="eventTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventStartTime">Start Time</label>
+                            <input type="datetime-local" class="form-control" id="eventStartTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventEndTime">End Time</label>
+                            <input type="datetime-local" class="form-control" id="eventEndTime">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventCreatedBy">Created By</label>
+                            <input type="text" class="form-control" id="eventCreatedBy" required>
+                        </div>
+                        <input type="hidden" id="eventDate">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEvent()">Save Event</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</html>
