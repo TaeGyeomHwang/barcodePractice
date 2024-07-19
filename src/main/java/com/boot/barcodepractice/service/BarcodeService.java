@@ -30,7 +30,7 @@ public class BarcodeService {
         BufferedImage combinedImage = new BufferedImage(width, height + textHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = combinedImage.createGraphics();
 
-        // 바코드 그리기 
+        // 바코드 그리기
         g2d.drawImage(barcodeImage, 0, 0, null);
 
         // 바코드 아래에 텍스트 그리기
