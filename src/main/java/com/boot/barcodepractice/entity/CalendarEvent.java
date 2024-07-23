@@ -19,11 +19,18 @@ public class CalendarEvent {
     private String title;
 
     @Column(nullable = false)
+    private String place;
+
+    @Column(nullable = false)
+    private String resource;
+
+    @Column(nullable = false)
+    private String reason;
+
+    @Column(nullable = false)
     private LocalDateTime startTime;
 
     @Column(nullable = true)
     private LocalDateTime endTime;
 
-    @Column(nullable = false)
-    private String createdBy;
 }
