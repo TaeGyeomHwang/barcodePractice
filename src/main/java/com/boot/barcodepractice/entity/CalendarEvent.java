@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "calendar_event")
 @Getter
-@Setter
+@Setter 
 public class CalendarEvent {
 
     @Id
