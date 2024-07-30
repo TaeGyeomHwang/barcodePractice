@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<head>
+    <title>Apex Charts</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<th:block layout:fragment="css">
+    <style>
+        /* 추가적인 CSS를 여기에 작성하세요 */
+    </style>
+</th:block>
+
+<th:block layout:fragment="script">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script th:inline="javascript">
+        $(document).ready(function () {
+            function renderChart(currentMonthData, lastMonthData, categories) {
+                var options = {
+                    chart: {
+                        type: 'bar'
+                    },
+                    series: [{
+                        name: 'Current Month',
+                        data: currentMonthData
+                    }, {
+                        name: 'Last Month',
+                        data: lastMonthData
+                    }],
+                    xaxis: {
+                        categories: categories
+                    }
+                };
+
+                var chart = new ApexCharts(document.querySelector("#chart"), options);
+                chart.render();
+            }
+
+            $.ajax({
+                url: '/api/charts/consumptions',
+                type: 'GET',
+                success: function (data) {
+                    var currentMonthData = [];
+                    var lastMonthData = [];
+                    var categories = [];
+
+                    data.currentMonth.forEach(function (item) {
+                        categories.push(item[0]);
+                        currentMonthData.push(item[1]);
+                    });
+
+                    data.lastMonth.forEach(function (item) {
+                        lastMonthData.push(item[1]);
+                    });
+
+                    renderChart(currentMonthData, lastMonthData, categories);
+                },
+                error: function (error) {
+                    alert('Error fetching data');
+                }
+            });
+
+            // 폼 제출 이벤트 핸들러
+            $('#processConsumptionForm').on('submit', function (event) {
+                event.preventDefault();
+                var formData = {
+                    processName: $('#processName').val(),
+                    processConsumptions: $('#processConsumptions').val(),
+                    dateTime: $('#dateTime').val()
+                };
+
+                $.ajax({
+                    url: '/api/charts',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function (data) {
+                        $('#processConsumptionModal').modal('hide');
+                        alert('Process Consumption added successfully');
+                        location.reload(); // 데이터가 추가된 후 페이지를 새로고침
+                    },
+                    error: function (error) {
+                        alert('Error adding Process Consumption');
+                    }
+                });
+            });
+        });
+    </script>
+</th:block>
+
+<div layout:fragment="content">
+    <div class="container mt-5">
+        <h1>
+            Apex Charts
+            <!-- 모달을 출력하는 버튼 -->
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#processConsumptionModal">
+                소모량 추가
+            </button>
+        </h1>
+
+    </div>
+
+    <div id="chart"></div>
+
+    <!-- Bootstrap 모달 -->
+    <div class="modal fade" id="processConsumptionModal" tabindex="-1" role="dialog" aria-labelledby="processConsumptionModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="processConsumptionModalLabel">Add Process Consumption</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="processConsumptionForm">
+                        <div class="form-group">
+                            <label for="processName">공정명</label>
+                            <select class="form-control" id="processName" required>
+                                <option value="MCT_1">MCT 1</option>
+                                <option value="MCT_2">MCT 2</option>
+                                <option value="MCT_3">MCT 3</option>
+                                <option value="CNC_1">CNC 1</option>
+                                <option value="CNC_2">CNC 2</option>
+                                <option value="LPS">LPS</option>
+                                <option value="ROBOT">로봇 자동화</option>
+                                <option value="ASSEMBLE">조립장</option>
+                                <option value="MEASURING_ROOM">측정실</option>
+                                <option value="HOBBING">호빙기</option>
+                                <option value="MILLING_RADIAL_POLISHING">밀링/연마/레디알</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="processConsumptions">소모량</label>
+                            <input type="number" class="form-control" id="processConsumptions" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dateTime">소모일</label>
+                            <input type="datetime-local" class="form-control" id="dateTime" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">등록</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</html>
