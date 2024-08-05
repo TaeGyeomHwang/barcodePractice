@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>QR Codes</title>
+    <style>
+        @media print {
+            body, html {
+                margin: 0;
+                padding: 0;
+            }
+            img {
+                margin: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12" th:each="qrCode : ${qrCodes}">
+            <img th:src="'data:image/png;base64,' + ${qrCode}" alt="QR Code"/>
+        </div>
+    </div>
+</div>
+</body>
+</html>

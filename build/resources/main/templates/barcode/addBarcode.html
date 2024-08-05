@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<head>
+    <title>ADD BARCODE</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css">
+</head>
+
+<th:block layout:fragment="css">
+    <style>
+        .modal-dialog {
+            max-width: 80%;
+        }
+    </style>
+</th:block>
+
+<th:block layout:fragment="script">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script th:inline="javascript">
+        $(document).ready(function () {
+            var table = $('#barcodeTable').DataTable({
+                ajax: {
+                    url: '/getBarcodes',
+                    dataSrc: ''
+                },
+                columns: [
+                    { data: 'barcodeNo' },
+                    { data: 'name' },
+                    {
+                        data: null,
+                        render: function (data, type, row) {
+                            return '<input type="checkbox" class="barcode-checkbox" value="' + row.name + '">';
+                        },
+                        orderable: false
+                    }
+                ]
+            });
+
+            $('#addBarcodeForm').on('submit', function (event) {
+                event.preventDefault();
+                var formData = { name: $('#barcodeName').val() };
+
+                $.ajax({
+                    url: '/addBarcode',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function (data) {
+                        $('#addBarcodeModal').modal('hide');
+                        alert('Barcode added successfully');
+                        table.ajax.reload();
+                    },
+                    error: function (error) {
+                        alert('Error adding Barcode');
+                    }
+                });
+            });
+
+            // Ensure modal backdrop is removed
+            $('#addBarcodeModal').on('hidden.bs.modal', function () {
+                if ($('.modal-backdrop').length) {
+                    $('.modal-backdrop').remove();
+                    $('body').removeClass('modal-open');
+                    $('body').css('padding-right', '');
+                }
+            });
+
+            $('#generateQrCodesButton').on('click', function () {
+                var selectedBarcodes = [];
+                $('.barcode-checkbox:checked').each(function () {
+                    selectedBarcodes.push($(this).val());
+                });
+
+                if (selectedBarcodes.length > 0) {
+                    $.ajax({
+                        url: '/generateQRCodes',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(selectedBarcodes),
+                        success: function (data) {
+                            var newWindow = window.open('', '_blank');
+                            var htmlContent = `
+                            <html>
+                            <head>
+                                <title>Print QR Codes</title>
+                                <style>
+                                    @media print {
+                                        body, html {
+                                            margin: 0;
+                                            padding: 0;
+                                        }
+                                        img {
+                                            margin: 10px;
+                                        }
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                ${data.map(qrCode => `<img src="data:image/png;base64,${qrCode}" alt="QR Code">`).join('')}
+                            </body>
+                            </html>`;
+                            newWindow.document.write(htmlContent);
+                            newWindow.print();
+                            newWindow.document.close();
+                        },
+                        error: function () {
+                            alert('Error generating QR codes');
+                        }
+                    });
+                } else {
+                    alert('Please select at least one barcode to generate QR codes.');
+                }
+            });
+        });
+    </script>
+
+
+</th:block>
+
+<div layout:fragment="content">
+    <div class="container mt-5">
+        <h1>
+            바코드 넘버 관리
+            <!-- 모달을 출력하는 버튼 -->
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addBarcodeModal">
+                바코드 넘버 추가
+            </button>
+            <!-- Button to generate QR codes -->
+            <button type="button" id="generateQrCodesButton" class="btn btn-secondary">
+                QR 코드 출력
+            </button>
+        </h1>
+
+        <!-- Table to display barcodes -->
+        <table id="barcodeTable" class="display" style="width:100%">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Select</th>
+            </tr>
+            </thead>
+        </table>
+    </div>
+
+    <!-- Bootstrap 모달 -->
+    <div class="modal fade" id="addBarcodeModal" tabindex="-1" role="dialog" aria-labelledby="addBarcodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addBarcodeModalLabel">Add Barcode Number</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="addBarcodeForm">
+                        <div class="form-group">
+                            <label for="barcodeName">Barcode Name</label>
+                            <input type="text" class="form-control" id="barcodeName" name="barcodeName" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</html>
